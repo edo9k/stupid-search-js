@@ -1,0 +1,35 @@
+<html>
+  <head>
+    <title>MediaQueryJS Test</title>
+  </head>
+
+  <body>
+    <div>
+      <h1 id="indicador">A MediaQuery Não rodou ainda.</h1>
+    </div>
+
+    <ul id="lista">
+    </ul>
+
+    <script>
+
+      const mediaQueryList = window.matchMedia("screen")
+      mediaQueryList.addListener( mql => {
+        if (mql.matches) {
+          document.querySelector("#indicador")
+            .innerText = "Não está imprimindo."
+
+          // funcões pra quando não está imprimindo
+        } else {
+          document.querySelector("#indicador")
+            .innerText = "Está imprimindo."
+
+          // funções para quando está imprimindo
+        }
+
+      })
+
+      console.log(`meh @${new Date()}`)
+    </script>
+  </body>
+</html>
