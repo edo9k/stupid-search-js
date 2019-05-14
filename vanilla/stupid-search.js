@@ -24,18 +24,15 @@ const search = async (q, s) => {
   const indices = []
   let regex = await replaceBrChars(q.toLowerCase())
   regex = query(regex)
+  book.cleanText = replaceBrChars(s)
   let result = null
 
   while ((result = regex.exec(s))) {
     indices.push(result.index)
 
     addResult(
-      `
-    ...${book.text.substring(result.index - 20, result.index + 20)}...
-    `,
-      `${book.url}?preambule=${encodeURIComponent(
-        book.text.substring(result.index - 20, result.index - 1)
-      )}&word=${encodeURIComponent(q)}`
+      `...${book.text.substring(result.index - 20, result.index + 20)}...`,
+      `${book.url}?preambule=${book.text.substring(result.index - 20, result.index - 1)}&word=${q}`
     )
 
     //        ...${book.text.substring(result.index - 50, result.index + 0)}...
@@ -71,6 +68,7 @@ const setParam = w => {
   let params = new URLSearchParams(window.location.search)
 
   params.set('query', w)
+  history.pushState(null, `Pesquisa: ${w}`, `?query=${params.get('query')}`)
 }
 
 const getParam = () => {
@@ -84,6 +82,8 @@ const main = async () => {
   document.getElementById('searchButton').onclick = () => {
     let query = document.getElementById('searchText').value
 
+    cleanResults()
+    setParam(query)
     search(query, book.text)
   }
   // load all texts

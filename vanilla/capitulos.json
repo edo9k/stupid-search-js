@@ -1,0 +1,17 @@
+[
+  {
+    "titulo": "Capítulo 1",
+    "subtitulo": "Dom Casmurro",
+    "arquivo": "dom-casmurro.html"
+  },
+  {
+    "titulo": "Capítulo 2",
+    "subtitulo": "Esaú e Jacó",
+    "arquivo": "esau-e-jaco.html"
+  },
+  {
+    "titulo": "Capítulo 3",
+    "subtitulo": "Quincas Borba",
+    "arquivo": "quincas-borba.html"
+  }
+]
