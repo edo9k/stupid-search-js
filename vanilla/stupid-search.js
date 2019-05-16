@@ -22,11 +22,11 @@ const queryRegex = w => new RegExp(w, 'gi')
 const search = async (searchQuery, corpus) => {
   if (!searchQuery) console.error('DEU RUIM')
 
-  if (!corpus.cleanText) {
+  if (!corpus.cleanText && !corpus.text) {
     console.log(`
 
-    text      -  ${corpus.text.substring(500, 550)}
-    cleanText -  ${corpus.cleanText.substring(500, 550)}
+    text      -  ${corpus.text /*.substring(500, 550)*/}
+    cleanText -  ${corpus.cleanText /*.substring(500, 550)*/}
 
     `)
     corpus.cleanText = await clean(corpus.text)
@@ -38,7 +38,7 @@ const search = async (searchQuery, corpus) => {
   const indices = []
   let result = null
 
-  addSection(corpus.subtitulo)
+  addSection(corpus.subtitulo) // mudar para corpus.titulo
 
   while ((result = searchQuery.exec(corpus.cleanText))) {
     indices.push(result.index)
@@ -105,6 +105,13 @@ const main = async () => {
     await search(query, book.text)
   }
 
+  document.getElementById('searchText').addEventListener('keyup', event => {
+    event.preventDefault()
+    if (event.keyCode === 13) {
+      document.getElementById('searchButton').click()
+    }
+  })
+
   // load all texts
   const doc = await fetch('./dom-casmurro.html')
   const text = await doc.text()
@@ -137,7 +144,10 @@ const main = async () => {
   const urlQuery = getParam()
   if (urlQuery) {
     document.getElementById('searchText').value = urlQuery
-    await search(urlQuery, files[0])
+    setTimeout(() => console.log('plz kill me' + Date.now()), 500)
+    setTimeout(async () => {
+      await search(urlQuery, files[0])
+    }, 2000)
   }
 }
 
