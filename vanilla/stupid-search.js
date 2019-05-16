@@ -4,8 +4,8 @@
 
 let book = {}
 
-const replaceBrChars = async t =>
-  t
+const replaceBrChars = async text =>
+  text
     .replace(/[áàãâä]/iu, 'a')
     .replace(/[éèêë]/iu, 'e')
     .replace(/[íìîï]/iu, 'i')
@@ -17,28 +17,37 @@ const replaceBrChars = async t =>
 
 const clean = async t => await replaceBrChars(t.toLowerCase())
 
-const query = w => new RegExp(w, 'gi')
+const queryRegex = w => new RegExp(w, 'gi')
 
-const search = async (q, s) => {
-  const a = Date.now()
+const search = async (searchQuery, corpus) => {
+  if (!searchQuery) console.error('DEU RUIM')
+
+  if (!corpus.cleanText) {
+    console.log(`
+
+    text      -  ${corpus.text.substring(500, 550)}
+    cleanText -  ${corpus.cleanText.substring(500, 550)}
+
+    `)
+    corpus.cleanText = await clean(corpus.text)
+  }
+
+  searchQuery = await clean(searchQuery)
+  searchQuery = queryRegex(searchQuery)
+
   const indices = []
-  let regex = await replaceBrChars(q.toLowerCase())
-  regex = query(regex)
-  book.cleanText = replaceBrChars(s)
   let result = null
 
-  while ((result = regex.exec(s))) {
+  addSection(corpus.subtitulo)
+
+  while ((result = searchQuery.exec(corpus.cleanText))) {
     indices.push(result.index)
 
     addResult(
-      `...${book.text.substring(result.index - 20, result.index + 20)}...`,
-      `${book.url}?preambule=${book.text.substring(result.index - 20, result.index - 1)}&word=${q}`
+      `...${corpus.text.substring(result.index - 20, result.index + 20)}...`,
+      `${corpus.arquivo}?preambule=${corpus.text.substring(result.index - 20, result.index - 1)}&word=${searchQuery}`
     )
-
-    //        ...${book.text.substring(result.index - 50, result.index + 0)}...
-    //        (encontrado em ${(Date.now() - a) / 1000} segundo/s)
   }
-  //  ` ${indices.length} resultados encotrados. `
 }
 
 const cleanResults = () => {
@@ -64,6 +73,15 @@ const addResult = (text, link) => {
   document.getElementById('result').appendChild(item)
 }
 
+const addSection = text => {
+  const item = document.createElement('h2')
+  const itemText = document.createTextNode(text)
+
+  item.appendChild(itemText)
+
+  document.getElementById('result').appendChild(item)
+}
+
 const setParam = w => {
   let params = new URLSearchParams(window.location.search)
 
@@ -79,24 +97,47 @@ const getParam = () => {
 
 const main = async () => {
   // setup inputs
-  document.getElementById('searchButton').onclick = () => {
+  document.getElementById('searchButton').onclick = async () => {
     let query = document.getElementById('searchText').value
 
     cleanResults()
     setParam(query)
-    search(query, book.text)
+    await search(query, book.text)
   }
+
   // load all texts
   const doc = await fetch('./dom-casmurro.html')
   const text = await doc.text()
 
+  let files
+
+  try {
+    const jsonFile = await fetch('./capitulos.json')
+    files = await jsonFile.json()
+  } catch (e) {
+    console.error({ message: 'Erro ao carregar arquivo de descrição de capítulos (capitulos.json)', error: e })
+  }
+
+  try {
+    files
+      .map(x => x.arquivo)
+      .forEach(async (arquivo, i) => {
+        const response = await fetch(arquivo)
+        files[i].text = await response.text()
+      })
+  } catch (e) {
+    console.error({ message: 'Erro ao carregar os capítulos do livro.', error: e })
+  }
+
+  console.log(files[0].text)
+
   book.url = './dom-casmurro.html'
   book.text = text
 
-  let urlQuery = getParam()
+  const urlQuery = getParam()
   if (urlQuery) {
     document.getElementById('searchText').value = urlQuery
-    search(urlQuery, book.text)
+    await search(urlQuery, files[0])
   }
 }
 
@@ -105,11 +146,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 })
 
 /*
-  (async () => {
+
     const rawargs = process.argv
     const args = rawargs.slice(2)
     const searchText = await clean(book.text.toLowerCase())
-
 
     const searchQuery = args
       .map(x => x.toString().trim())
@@ -130,7 +170,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         Please try again.
       `)
     }
-
 
         searchQuery ----------------------  ${ searchQuery}
         searchQuery sanitized ------------  ${ await replaceBrChars(searchQuery.toLowerCase())}
