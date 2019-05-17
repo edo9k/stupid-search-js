@@ -2,35 +2,97 @@
  * @prettier
  */
 
-let book = {}
+let BOOK = [] // all books go in here
 
-const replaceBrChars = async text =>
-  text
+const loadTexts = async () => {
+  let files
+
+  // load description file
+  try {
+    const jsonFile = await fetch('./capitulos.json')
+    files = await jsonFile.json()
+  } catch (e) {
+    console.error({
+      message: 'Erro ao carregar <capitulos.json>',
+      error: e
+    })
+  }
+
+  // load and parse files
+  try {
+    files.forEach(async chapter => {
+      const response = await fetch(chapter.arquivo)
+      const text = await response.text()
+      BOOK.push({
+        title: chapter.titulo,
+        subtitle: chapter.subtitulo,
+        file: chapter.arquivo,
+        text: stripHTML(text)
+      })
+    })
+  } catch (e) {
+    console.error({
+      message: 'Erro ao carregar os capítulos do livro.',
+      error: e
+    })
+  }
+}
+
+/*
+ * character/text cleanup
+ */
+const cleanTexts = () => {
+  BOOK.forEach(async el => {
+    if (!el.cleanText) {
+      el.text = stripHTML(el.text)
+      el.cleanText = await clean(el.text)
+    }
+  })
+}
+
+const replaceBrChars = async text => {
+  return text
     .replace(/[áàãâä]/iu, 'a')
     .replace(/[éèêë]/iu, 'e')
     .replace(/[íìîï]/iu, 'i')
     .replace(/[óòõôö]/iu, 'o')
     .replace(/[úùûü]/iu, 'u')
     .replace(/[ç]/iu, 'c')
-// .replace(/[^a-z0-9]/i, '_')
-// .replace(/_+/, '_')
+}
 
-const clean = async t => await replaceBrChars(t.toLowerCase())
+const stripHTML = text => {
+  if (!text && typeof text !== 'string') return ''
 
-const queryRegex = w => new RegExp(w, 'gi')
+  const bodyBegin = text.indexOf('<body>')
+  const bodyEnd = text.indexOf('</body>')
 
-const search = async (searchQuery, corpus) => {
-  if (!searchQuery) console.error('DEU RUIM')
+  if (bodyBegin === -1 && bodyEnd === -1) return ''
 
-  if (!corpus.cleanText && !corpus.text) {
-    console.log(`
+  const tmp = document.createElement('html')
 
-    text      -  ${corpus.text /*.substring(500, 550)*/}
-    cleanText -  ${corpus.cleanText /*.substring(500, 550)*/}
+  tmp.innerHTML = text.substring(bodyBegin, bodyEnd)
 
-    `)
-    corpus.cleanText = await clean(corpus.text)
+  return tmp.innerText
+}
+
+const clean = async t => {
+  return await stripHTML(replaceBrChars(t.toLowerCase()))
+}
+
+const queryRegex = w => {
+  return new RegExp(w, 'gi')
+}
+
+/*
+ * simple search loop
+ */
+const search = async searchQuery => {
+  if (!searchQuery || searchQuery.length < 4) {
+    console.log('No mínimo quatro caracteres pra fazer a pesquisa')
+    return false
   }
+
+  corpus.cleanText = await clean(corpus.text)
 
   searchQuery = await clean(searchQuery)
   searchQuery = queryRegex(searchQuery)
@@ -49,14 +111,9 @@ const search = async (searchQuery, corpus) => {
     )
   }
 }
-
-const cleanResults = () => {
-  let node = document.getElementById('result')
-  while (node.firstChild) {
-    node.removeChild(node.firstChild)
-  }
-}
-
+/*
+ * user interface functions
+ */
 const addResult = (text, link) => {
   const item = document.createElement('li')
   const itemText = document.createTextNode(text)
@@ -82,6 +139,16 @@ const addSection = text => {
   document.getElementById('result').appendChild(item)
 }
 
+const cleanResults = () => {
+  let node = document.getElementById('result')
+  while (node.firstChild) {
+    node.removeChild(node.firstChild)
+  }
+}
+
+/*
+ * param/route functions
+ */
 const setParam = w => {
   let params = new URLSearchParams(window.location.search)
 
@@ -95,14 +162,25 @@ const getParam = () => {
   return params.get('query')
 }
 
-const main = async () => {
-  // setup inputs
+const checkParamSearch = () => {
+  const urlQuery = getParam()
+  if (urlQuery) {
+    document.getElementById('searchText').value = urlQuery
+
+    search(urlQuery, files[0])
+  }
+}
+
+/*
+ * set events up
+ */
+const setup = () => {
   document.getElementById('searchButton').onclick = async () => {
-    let query = document.getElementById('searchText').value
+    let query = document.getElementById('seachText').value
 
     cleanResults()
-    setParam(query)
-    await search(query, book.text)
+    setParams(query)
+    await search(query, files[0])
   }
 
   document.getElementById('searchText').addEventListener('keyup', event => {
@@ -111,80 +189,23 @@ const main = async () => {
       document.getElementById('searchButton').click()
     }
   })
-
-  // load all texts
-  const doc = await fetch('./dom-casmurro.html')
-  const text = await doc.text()
-
-  let files
-
-  try {
-    const jsonFile = await fetch('./capitulos.json')
-    files = await jsonFile.json()
-  } catch (e) {
-    console.error({ message: 'Erro ao carregar arquivo de descrição de capítulos (capitulos.json)', error: e })
-  }
-
-  try {
-    files
-      .map(x => x.arquivo)
-      .forEach(async (arquivo, i) => {
-        const response = await fetch(arquivo)
-        files[i].text = await response.text()
-      })
-  } catch (e) {
-    console.error({ message: 'Erro ao carregar os capítulos do livro.', error: e })
-  }
-
-  console.log(files[0].text)
-
-  book.url = './dom-casmurro.html'
-  book.text = text
-
-  const urlQuery = getParam()
-  if (urlQuery) {
-    document.getElementById('searchText').value = urlQuery
-    setTimeout(() => console.log('plz kill me' + Date.now()), 500)
-    setTimeout(async () => {
-      await search(urlQuery, files[0])
-    }, 2000)
-  }
 }
 
+const main = async () => {
+  loadTexts()
+  setup()
+
+  // load all texts
+  //const doc = await fetch('./dom-casmurro.html')
+  //const text = await doc.text()
+  /*
+
+  let files
+  checkParamSearch()
+  */
+}
+
+// calls main when document is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   await main()
 })
-
-/*
-
-    const rawargs = process.argv
-    const args = rawargs.slice(2)
-    const searchText = await clean(book.text.toLowerCase())
-
-    const searchQuery = args
-      .map(x => x.toString().trim())
-      .join(' ')
-
-
-    if (typeof searchQuery === 'string'
-        && searchQuery.trim() !== ''
-        && searchQuery.length > 3 ) {
-      await search( searchQuery, searchText )
-    } else {
-      console.error(`
-        Search queries must be:
-          - String type (text)
-          - Non empty
-          - Longer than 3 characters
-
-        Please try again.
-      `)
-    }
-
-        searchQuery ----------------------  ${ searchQuery}
-        searchQuery sanitized ------------  ${ await replaceBrChars(searchQuery.toLowerCase())}
-        && typeof searchQuery === 'string'  ${ typeof searchQuery === 'string'}
-        && searchQuery.trim() !== '' -----  ${ searchQuery.trim() !== '' }
-        && searchQuery.length > 2 --------  ${ searchQuery.length > 2 }
-
-    */
