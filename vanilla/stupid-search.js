@@ -5,6 +5,7 @@
 let BOOK = [] // all books go in here
 
 const loadTexts = async () => {
+  let books = []
   let files
 
   // load description file
@@ -23,13 +24,15 @@ const loadTexts = async () => {
     files.forEach(async chapter => {
       const response = await fetch(chapter.arquivo)
       const text = await response.text()
-      BOOK.push({
+      books.push({
         title: chapter.titulo,
         subtitle: chapter.subtitulo,
         file: chapter.arquivo,
         text: stripHTML(text)
       })
     })
+
+    BOOK = books
   } catch (e) {
     console.error({
       message: 'Erro ao carregar os capítulos do livro.',
@@ -75,8 +78,12 @@ const stripHTML = text => {
   return tmp.innerText
 }
 
-const clean = async t => {
-  return await stripHTML(replaceBrChars(t.toLowerCase()))
+// prettier-ignore
+const clean = async text => {
+  return await stripHTML(
+    await replaceBrChars(
+      text.toLowerCase()
+  ))
 }
 
 const queryRegex = w => {
@@ -174,7 +181,7 @@ const checkParamSearch = () => {
 /*
  * set events up
  */
-const setup = () => {
+const setupEvents = () => {
   document.getElementById('searchButton').onclick = async () => {
     let query = document.getElementById('seachText').value
 
@@ -192,8 +199,8 @@ const setup = () => {
 }
 
 const main = async () => {
-  loadTexts()
-  setup()
+  await loadTexts()
+  setupEvents()
 
   // load all texts
   //const doc = await fetch('./dom-casmurro.html')
