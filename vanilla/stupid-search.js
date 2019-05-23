@@ -13,10 +13,12 @@ const loadTexts = async () => {
     const jsonFile = await fetch('./capitulos.json')
     files = await jsonFile.json()
   } catch (e) {
+    // ao invés de imprimir, gerar um erro novo e retornar ele
     console.error({
       message: 'Erro ao carregar <capitulos.json>',
       error: e
     })
+    return
   }
 
   // load and parse files
@@ -28,12 +30,13 @@ const loadTexts = async () => {
         title: chapter.titulo,
         subtitle: chapter.subtitulo,
         file: chapter.arquivo,
-        text: stripHTML(text)
+        text: removeLineBreaks(await stripHTML(text))
       })
     })
 
     BOOK = books
   } catch (e) {
+    // mesmo esquema do try-catch anterior
     console.error({
       message: 'Erro ao carregar os capítulos do livro.',
       error: e
@@ -47,7 +50,7 @@ const loadTexts = async () => {
 const cleanTexts = () => {
   BOOK.forEach(async el => {
     if (!el.cleanText) {
-      el.text = stripHTML(el.text)
+      //el.text = await stripHTML(el.text) não é mais necessário
       el.cleanText = await clean(el.text)
     }
   })
@@ -55,15 +58,20 @@ const cleanTexts = () => {
 
 const replaceBrChars = async text => {
   return text
-    .replace(/[áàãâä]/iu, 'a')
-    .replace(/[éèêë]/iu, 'e')
-    .replace(/[íìîï]/iu, 'i')
-    .replace(/[óòõôö]/iu, 'o')
-    .replace(/[úùûü]/iu, 'u')
-    .replace(/[ç]/iu, 'c')
+    .replace(/[áàãâä]/giu, 'a')
+    .replace(/[éèêë]/giu, 'e')
+    .replace(/[íìîï]/giu, 'i')
+    .replace(/[óòõôö]/giu, 'o')
+    .replace(/[úùûü]/giu, 'u')
+    .replace(/[ç]/giu, 'c')
 }
 
-const stripHTML = text => {
+const removeLineBreaks = text => {
+  return text.replace(/\n+/giu, '\n')
+}
+
+const stripHTML = async text => {
+  // retornar erro???
   if (!text && typeof text !== 'string') return ''
 
   const bodyBegin = text.indexOf('<body>')
@@ -80,10 +88,15 @@ const stripHTML = text => {
 
 // prettier-ignore
 const clean = async text => {
-  return await stripHTML(
-    await replaceBrChars(
-      text.toLowerCase()
-  ))
+  //  return await stripHTML(
+  //  await replaceBrChars(
+  //    text.toLowerCase()
+  //))
+  
+  let a = text.toLowerCase()
+  let b = await replaceBrChars(a)
+
+  return b
 }
 
 const queryRegex = w => {
@@ -99,25 +112,26 @@ const search = async searchQuery => {
     return false
   }
 
-  corpus.cleanText = await clean(corpus.text)
-
   searchQuery = await clean(searchQuery)
   searchQuery = queryRegex(searchQuery)
 
-  const indices = []
-  let result = null
+  for (chapter of BOOK) {
+    const indices = []
+    let result = null
 
-  addSection(corpus.subtitulo) // mudar para corpus.titulo
+    addSection(chapter.title) // mudar para corpus.titulo
 
-  while ((result = searchQuery.exec(corpus.cleanText))) {
-    indices.push(result.index)
+    while ((result = searchQuery.exec(chapter.cleanText))) {
+      indices.push(result.index)
 
-    addResult(
-      `...${corpus.text.substring(result.index - 20, result.index + 20)}...`,
-      `${corpus.arquivo}?preambule=${corpus.text.substring(result.index - 20, result.index - 1)}&word=${searchQuery}`
-    )
+      addResult(
+        `...${chapter.text.substring(result.index - 20, result.index + 20)}...`,
+        `${chapter.file}?preambule=${chapter.text.substring(result.index - 20, result.index - 1)}&word=${searchQuery}`
+      )
+    }
   }
 }
+
 /*
  * user interface functions
  */
@@ -183,11 +197,12 @@ const checkParamSearch = () => {
  */
 const setupEvents = () => {
   document.getElementById('searchButton').onclick = async () => {
-    let query = document.getElementById('seachText').value
+    let query = document.getElementById('searchText').value
 
     cleanResults()
-    setParams(query)
-    await search(query, files[0])
+    setParam(query)
+
+    await search(query)
   }
 
   document.getElementById('searchText').addEventListener('keyup', event => {
@@ -200,6 +215,7 @@ const setupEvents = () => {
 
 const main = async () => {
   await loadTexts()
+  await cleanTexts()
   setupEvents()
 
   // load all texts
