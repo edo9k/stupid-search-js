@@ -47,11 +47,10 @@ const loadTexts = async () => {
 /*
  * character/text cleanup
  */
-const cleanTexts = () => {
-  BOOK.forEach(async el => {
+const cleanTexts = async () => {
+  BOOK.forEach(async (el, index) => {
     if (!el.cleanText) {
-      //el.text = await stripHTML(el.text) não é mais necessário
-      el.cleanText = await clean(el.text)
+      BOOK[index].cleanText = await clean(el.text)
     }
   })
 }
@@ -87,12 +86,7 @@ const stripHTML = async text => {
 }
 
 // prettier-ignore
-const clean = async text => {
-  //  return await stripHTML(
-  //  await replaceBrChars(
-  //    text.toLowerCase()
-  //))
-  
+const clean = async text => { 
   let a = text.toLowerCase()
   let b = await replaceBrChars(a)
 
@@ -135,6 +129,12 @@ const search = async searchQuery => {
 /*
  * user interface functions
  */
+
+const showSearchUI = () => {
+  isLoading.style.display = 'none'
+  searchArea.style.display = 'block'
+}
+
 const addResult = (text, link) => {
   const item = document.createElement('li')
   const itemText = document.createTextNode(text)
@@ -183,12 +183,12 @@ const getParam = () => {
   return params.get('query')
 }
 
-const checkParamSearch = () => {
+const checkParamSearch = async () => {
   const urlQuery = getParam()
   if (urlQuery) {
     document.getElementById('searchText').value = urlQuery
 
-    search(urlQuery, files[0])
+    await search(urlQuery)
   }
 }
 
@@ -217,15 +217,9 @@ const main = async () => {
   await loadTexts()
   await cleanTexts()
   setupEvents()
+  showSearchUI()
 
-  // load all texts
-  //const doc = await fetch('./dom-casmurro.html')
-  //const text = await doc.text()
-  /*
-
-  let files
-  checkParamSearch()
-  */
+  await checkParamSearch()
 }
 
 // calls main when document is loaded

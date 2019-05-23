@@ -1,22 +1,37 @@
+<!DOCTYPE html>
 <html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
-    <title>Simple Search with HTML</title>
-  </head>
+<head>
+  <meta name="generator" content=
+  "HTML Tidy for HTML5 for Linux version 5.2.0">
+  <meta http-equiv="Content-Type" content=
+  "text/html; charset=utf-8">
+  <title>Simple Search with HTML</title>
+  <style>
 
-  <body>
+    #isLoading {
+      background: url('./loading.gif') no-repeat center center;
+      width: 100vw;
+      height: 100px;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="isLoading"></div>
+  <div id="searchArea" style="display:none">
     <form action="...">
-      Search: <input id="searchText" type="text" name="query" />
-      <input id="searchButton" type="button" value="Go"> </button>
-
-      <input type="submit" disabled style="display:none" aria-hidden="true"></button>
+      Search: <input id="searchText" type="text" name="query">
+      <input id="searchButton" type="button" value="Go">
+      <input type="submit" disabled style="display:none"
+      aria-hidden="true">
     </form>
-
     <div>
       <ul id="result">
+        <li>%== resultados aqui ==%</li>
       </ul>
     </div>
- 
-    <script type="text/javascript" src="./stupid-search.js"></script>
-  </body>
+  </div>
+  <script type="text/javascript" src="./stupid-search.js">
+  </script>
+</body>
 </html>
