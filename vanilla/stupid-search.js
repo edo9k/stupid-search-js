@@ -104,11 +104,9 @@ const queryRegex = w => {
  */
 const search = async searchQuery => {
   if (!searchQuery || searchQuery.length < 4) {
-    console.log('No mínimo quatro caracteres pra fazer a pesquisa')
+    alert('No mínimo quatro caracteres pra fazer a pesquisa')
     return false
   }
-
-  cleanResults()
 
   searchRegex = queryRegex(await clean(searchQuery))
 
@@ -125,8 +123,8 @@ const search = async searchQuery => {
         `...${chapter.text.substring(result.index - 20, result.index + 20)}...`,
         `${chapter.file}?preambule=${chapter.text.substring(result.index - 20, result.index - 1)}&word=${searchQuery}`
       )
-    }
-  }
+    } // end while
+  } // end for-of
 }
 
 /*
@@ -191,6 +189,7 @@ const checkParamSearch = async () => {
   if (urlQuery) {
     document.getElementById('searchText').value = urlQuery
 
+    cleanResults()
     await search(urlQuery)
   }
 }
@@ -217,9 +216,22 @@ const setupEvents = () => {
 }
 
 const main = async () => {
+  let timer
+
+  // load files
+  timer = performance.now()
   await loadTexts()
+  console.log(`All text files loaded. (${performance.now() - timer} milliseconds)`)
+
+  // clean texts
+  timer = performance.now()
   await cleanTexts()
+  console.log(`All text files cleared. (${performance.now() - timer} milliseconds)`)
+
+  // setup buttons and what not
   setupEvents()
+
+  // show searchbox and button
   showSearchUI()
 
   await checkParamSearch()
