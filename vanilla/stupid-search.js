@@ -23,16 +23,18 @@ const loadTexts = async () => {
 
   // load and parse files
   try {
-    files.forEach(async chapter => {
-      const response = await fetch(chapter.arquivo)
-      const text = await response.text()
-      books.push({
-        title: chapter.titulo,
-        subtitle: chapter.subtitulo,
-        file: chapter.arquivo,
-        text: removeLineBreaks(await stripHTML(text))
+    await Promise.all(
+      files.map(async chapter => {
+        const response = await fetch(chapter.arquivo)
+        const text = await response.text()
+        books.push({
+          title: chapter.titulo,
+          subtitle: chapter.subtitulo,
+          file: chapter.arquivo,
+          text: removeLineBreaks(await stripHTML(text))
+        })
       })
-    })
+    )
 
     BOOK = books
   } catch (e) {
@@ -106,8 +108,9 @@ const search = async searchQuery => {
     return false
   }
 
-  searchQuery = await clean(searchQuery)
-  searchQuery = queryRegex(searchQuery)
+  cleanResults()
+
+  searchRegex = queryRegex(await clean(searchQuery))
 
   for (chapter of BOOK) {
     const indices = []
@@ -115,7 +118,7 @@ const search = async searchQuery => {
 
     addSection(chapter.title) // mudar para corpus.titulo
 
-    while ((result = searchQuery.exec(chapter.cleanText))) {
+    while ((result = searchRegex.exec(chapter.cleanText))) {
       indices.push(result.index)
 
       addResult(
